@@ -6,7 +6,8 @@
   "scripts": {
     "build": "esbuild code.ts --bundle --platform=browser --target=es2020 --outfile=code.js --format=iife && node build.js",
     "watch": "esbuild code.ts --bundle --platform=browser --target=es2020 --outfile=code.js --format=iife --watch",
-    "icon": "node generate-icon.js"
+    "icon": "node generate-icon.js",
+    "convert-video": "node convert-video.js"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.88.0",

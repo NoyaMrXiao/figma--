@@ -22,18 +22,22 @@
 
 查看插件使用演示：
 
-### 方式一：直接播放
+### MP4 格式（推荐）
 
 <video width="100%" controls>
-  <source src="录屏.mov" type="video/quicktime">
-  您的浏览器不支持视频播放。请<a href="录屏.mov">下载视频</a>查看。
+  <source src="录屏.mp4" type="video/mp4">
+  您的浏览器不支持视频播放。请<a href="录屏.mp4">下载视频</a>查看。
 </video>
 
-### 方式二：下载观看
+📥 [下载 MP4 视频](录屏.mp4)
 
-📥 [下载演示视频](录屏.mov) (录屏.mov)
+### GIF 格式
 
-> **提示**：如果视频无法在浏览器中播放，请下载后使用本地播放器查看。
+![插件演示](录屏.gif)
+
+📥 [下载 GIF 动图](录屏.gif)
+
+> **提示**：如果视频文件不存在，请运行 `npm run convert-video` 从 `录屏.mov` 生成 MP4 和 GIF 格式。
 
 ## ✨ 功能特性
 
@@ -121,7 +125,9 @@ figma脚本/
 ├── package.json           # npm 依赖配置
 ├── tsconfig.json          # TypeScript 编译配置
 ├── README.md              # 项目说明文档
-├── 录屏.mov               # 插件使用演示视频
+├── 录屏.mov               # 原始演示视频（MOV 格式）
+├── 录屏.mp4               # 演示视频（MP4 格式，运行 convert-video 后生成）
+├── 录屏.gif               # 演示动图（GIF 格式，运行 convert-video 后生成）
 │
 ├── code.ts                # 主脚本代码（TypeScript）
 ├── utils.ts               # 工具函数模块
@@ -130,6 +136,7 @@ figma脚本/
 │
 ├── build.js               # 构建脚本（HTML 注入和 JSZip 内联）
 ├── generate-icon.js        # 图标生成脚本
+├── convert-video.js       # 视频格式转换脚本
 │
 ├── icon.svg               # 图标源文件（SVG 格式）
 ├── icon.png               # 插件图标（128x128 PNG，用于发布）
@@ -169,6 +176,7 @@ npm run build
 | `npm run build` | 编译 TypeScript 并打包（包含 HTML 注入和 JSZip 内联） |
 | `npm run watch` | 监听模式，自动编译（但不包含 HTML 注入） |
 | `npm run icon` | 从 SVG 生成 PNG 图标（128x128） |
+| `npm run convert-video` | 将录屏.mov 转换为 MP4 和 GIF 格式（需要 ffmpeg） |
 
 ### 代码结构
 
