@@ -1,0 +1,20 @@
+{
+  "name": "figma-export-components-variants",
+  "version": "1.0.0",
+  "description": "导出Figma组件所有变体为SVG格式",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild code.ts --bundle --platform=browser --target=es2020 --outfile=code.js --format=iife && node build.js",
+    "watch": "esbuild code.ts --bundle --platform=browser --target=es2020 --outfile=code.js --format=iife --watch",
+    "icon": "node generate-icon.js"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.88.0",
+    "esbuild": "^0.19.0",
+    "sharp": "^0.33.5",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}

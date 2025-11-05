@@ -1,0 +1,11 @@
+{
+  "name": "导出组件所有变体",
+  "id": "1567838615160880097",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": { "allowedDomains": ["none"] },
+  "documentAccess": "dynamic-page"
+}
+

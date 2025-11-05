@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>导出组件所有变体</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 12px;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .status.info {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    .status.warning {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+    .status.success {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+    .status.error {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+    .status.processing {
+      background: #f0f0f0;
+      color: #666;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      flex: 1;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .primary {
+      background: #18a0fb;
+      color: white;
+    }
+    .primary:hover:not(:disabled) {
+      background: #1592e6;
+    }
+    .secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .secondary:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+    .component-count {
+      font-weight: 600;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="status info" id="status">正在检测选中的组件...</div>
+    <div class="button-group">
+      <button class="primary" id="exportBtn" disabled>开始导出</button>
+      <button class="secondary" id="cancelBtn">取消</button>
+    </div>
+  </div>
+
+  <script>
+    // 等待DOM加载完成
+    document.addEventListener('DOMContentLoaded', () => {
+      const statusEl = document.getElementById('status');
+      const exportBtn = document.getElementById('exportBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+
+      if (!statusEl || !exportBtn || !cancelBtn) {
+        console.error('UI元素未找到');
+        return;
+      }
+
+      // 监听来自主脚本的消息
+      window.addEventListener('message', (event) => {
+        try {
+          const msg = event.data && event.data.pluginMessage;
+          
+          if (!msg) {
+            return;
+          }
+          
+          if (msg.type === 'selection-status') {
+            // 更新选中状态
+            updateSelectionStatus(msg.hasSelection, msg.componentCount);
+          } else if (msg.type === 'save-svg') {
+            // 单个文件保存（已废弃，现在使用ZIP打包）
+            // 保留此处理以兼容旧版本
+            if (msg.fileName && msg.content) {
+              downloadSVG(msg.fileName, msg.content);
+            }
+          } else if (msg.type === 'export-complete') {
+            // 导出完成，将所有文件打包成ZIP
+            if (msg.files && msg.files.length > 0) {
+              statusEl.className = 'status processing';
+              statusEl.textContent = '正在打包文件...';
+              
+              createZipAndDownload(msg.files).then(() => {
+                statusEl.className = 'status success';
+                statusEl.textContent = `✅ 成功导出 ${msg.count} 个变体为SVG！已打包为ZIP文件`;
+                exportBtn.disabled = false;
+                exportBtn.textContent = '再次导出';
+              }).catch((error) => {
+                console.error('创建ZIP失败:', error);
+                statusEl.className = 'status error';
+                statusEl.textContent = `❌ 打包失败: ${error.message}`;
+                exportBtn.disabled = false;
+                exportBtn.textContent = '重试导出';
+              });
+            } else {
+              statusEl.className = 'status success';
+              statusEl.textContent = `✅ 成功导出 ${msg.count} 个变体为SVG！`;
+              exportBtn.disabled = false;
+              exportBtn.textContent = '再次导出';
+            }
+          } else if (msg.type === 'export-error') {
+            // 导出失败
+            statusEl.className = 'status error';
+            statusEl.textContent = `❌ 导出失败: ${msg.error}`;
+            exportBtn.disabled = false;
+            exportBtn.textContent = '重试导出';
+          }
+        } catch (error) {
+          console.error('处理消息时出错:', error);
+        }
+      });
+
+      // 更新选中状态的UI
+      function updateSelectionStatus(hasSelection, componentCount) {
+        if (!hasSelection) {
+          statusEl.className = 'status warning';
+          statusEl.innerHTML = '⚠️ 未选中组件<br><span style="font-size: 11px;">请选择你的组件或组件集，将导出所有变体</span>';
+          exportBtn.disabled = true;
+          exportBtn.textContent = '开始导出';
+        } else if (componentCount === 0) {
+          statusEl.className = 'status warning';
+          statusEl.innerHTML = '⚠️ 选中的元素中没有组件<br><span style="font-size: 11px;">请选择组件（Component）或组件集（Component Set）来导出所有变体</span>';
+          exportBtn.disabled = true;
+          exportBtn.textContent = '开始导出';
+        } else {
+          statusEl.className = 'status info';
+          statusEl.innerHTML = `✓ 已选中组件<br><span class="component-count">找到 ${componentCount} 个组件，将导出所有变体</span>`;
+          exportBtn.disabled = false;
+          exportBtn.textContent = '导出所有变体';
+        }
+      }
+
+      // 导出按钮点击事件
+      exportBtn.addEventListener('click', () => {
+        try {
+          if (exportBtn.disabled) {
+            return;
+          }
+          statusEl.className = 'status processing';
+          statusEl.textContent = '正在导出所有变体为SVG文件...';
+          exportBtn.disabled = true;
+          exportBtn.textContent = '导出中...';
+          parent.postMessage({ pluginMessage: { type: 'export-svg' } }, '*');
+        } catch (error) {
+          console.error('发送导出消息时出错:', error);
+          statusEl.className = 'status error';
+          statusEl.textContent = '❌ 导出失败';
+          exportBtn.disabled = false;
+          exportBtn.textContent = '开始导出';
+        }
+      });
+
+      // 取消按钮点击事件
+      cancelBtn.addEventListener('click', () => {
+        try {
+          parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+        } catch (error) {
+          console.error('发送取消消息时出错:', error);
+        }
+      });
+
+      // 创建ZIP文件并下载
+      async function createZipAndDownload(files) {
+        try {
+          // 检查 JSZip 是否可用
+          if (typeof window.JSZip === 'undefined' && typeof JSZip === 'undefined') {
+            throw new Error('JSZip 库未加载，请重新构建插件');
+          }
+          
+          // 使用全局 JSZip 或 window.JSZip
+          const JSZipClass = window.JSZip || JSZip;
+          const zip = new JSZipClass();
+          
+          // 将所有SVG文件添加到ZIP中
+          files.forEach((file) => {
+            if (file.fileName && file.content) {
+              zip.file(file.fileName, file.content);
+            }
+          });
+          
+          // 生成ZIP文件
+          const zipBlob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+          });
+          
+          // 下载ZIP文件
+          const url = URL.createObjectURL(zipBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `figma-components-${new Date().getTime()}.zip`;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          
+          // 延迟清理
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+        } catch (error) {
+          console.error('创建ZIP文件时出错:', error);
+          throw error;
+        }
+      }
+      
+      // 下载单个SVG文件（保留用于兼容）
+      function downloadSVG(fileName, content) {
+        try {
+          if (!fileName || !content) {
+            console.error('文件名或内容为空');
+            return;
+          }
+          
+          const blob = new Blob([content], { type: 'image/svg+xml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          
+          // 延迟清理，确保下载开始
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+        } catch (error) {
+          console.error('下载SVG时出错:', error);
+        }
+      }
+
+      // 请求检查选中状态
+      setTimeout(() => {
+        parent.postMessage({ pluginMessage: { type: 'check-selection' } }, '*');
+      }, 100);
+    });
+  </script>
+</body>
+</html>
+
